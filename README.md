@@ -17,6 +17,10 @@ A remote access trojan that connects to a remote server that is designed to be d
     A RAT disguised as Snake that connects to a Flask server via Socket.IO
   </p>
 
+  ### ⚠️ Disclaimer
+
+**This project is a work in progress**
+
 ## About The Project
 
 A Java and Python based Client/Server that installs itself as a service using NSSM and runs in the background disguised as the game Snake. The server has the ability to gather clipboard data, keyboard strokes and screen recordings.
