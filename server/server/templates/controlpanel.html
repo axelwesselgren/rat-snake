@@ -1,0 +1,138 @@
+{% extends "layout.html" %}
+{% block title %}Control Panel{% endblock %}
+{% block nav %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand">SerpentMaster</a>
+        <a class="btn btn-outline-danger" href="{{ url_for('logout')}}" id="logoutBtn">Logout</a>
+    </div>
+</nav>
+{% endblock %}
+{% block content %}
+<div class="container mt-3">
+    <div class="row">
+        <div class="col-md-8 mb-4">
+            <h4>Snakes</h4>
+            <ul class="list-group">
+                {% for snake in snakes %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center" onclick="toggleCard('{{ snake.guid }}')">
+                        {% if snake.alive %}
+                        <span class="badge bg-success" data-guid="{{ snake.guid }}">{{ snake.ip }}</span>
+                        {% else %}
+                        <span class="badge bg-danger" data-guid="{{ snake.guid }}">{{ snake.ip }}</span>
+                        {% endif %}
+                        <button type="button" id="select-{{ snake.guid }}" class="btn btn-outline-primary btn-sm" onclick="selectSnake('{{ snake.guid }}'); event.stopPropagation();">Select</button>
+                    </li>
+                    <div id="card-{{ snake.guid }}" class="card mb-2" style="display: none;">
+                        <div class="card-body">
+                            <div class="card-text">
+                                <dl>
+                                <dt>Host Name</dt>
+                                <dd>{{ snake.client_id }}</dd>
+                                <dt>GUID</dt>
+                                <dd>{{ snake.guid }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                        {% if snake.alive %}
+                            <img src="" class="img-fluid" alt="stream-{{ snake.guid }}" id="stream-{{ snake.guid }}">
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="col-md-4">
+            <h4 class="mb-4">Controls</h4>
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="card-title mb-3">
+                        <h5 id="controlTitle">Global Controls</h5>
+                    </div>
+                    <div class="d-flex flex-column">
+                        <button type="button" class="btn btn-danger mb-3 flex-fill" id="disconnectBtn">Disconnect all Connections</button>
+                        <button type="button" class="btn btn-danger flex-fill" id="shutdownBtn">Shutdown all Snakes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block footer %}
+<footer class="bg-dark text-white text-center py-4 fixed-bottom">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <p>SerpentMaster</p>
+        </div>
+      </div>
+    </div>
+</footer>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/controlpanel.js') }}"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+<script>
+    const socket = io.connect('http://localhost:8080');
+
+    let selectedSnakeGuid = null;
+
+    function selectSnake(guid) {
+        selectedSnakeGuid = guid;
+        const controlTitle = document.getElementById("controlTitle");
+    
+        const allSelectButtons = document.querySelectorAll('.btn-outline-primary');
+        allSelectButtons.forEach(btn => {
+            btn.className = "btn btn-outline-primary btn-sm";
+            btn.disabled = false;
+        });
+    
+        var selectBtn = document.getElementById(`select-${guid}`);
+        selectBtn.className = "btn btn-primary btn-sm";
+        selectBtn.disabled = true;
+        
+        controlTitle.textContent = `Selected Snake: ${guid}`;
+    }
+    
+    document.addEventListener('click', function(event) {
+        if (event.target.closest('li')) {
+            const guid = event.target.closest('li').getAttribute('data-guid');
+            toggleCard(guid);
+        }
+    });
+    
+    socket.on("update_stream", function(data) {
+        const { guid, image_data } = JSON.parse(data);
+        
+        if (!image_data) {
+            return;
+        }
+    
+        const imgElement = document.getElementById(`stream-${guid}`);
+        if (imgElement) {
+            imgElement.src = `data:image/png;base64,${image_data}`;
+        } else {
+            const card = document.getElementById(`card-${guid}`);
+            if (card) {
+                const img = document.createElement('img');
+                img.className = 'img-fluid';
+                img.alt = `stream-${guid}`;
+                img.id = `stream-${guid}`;
+                img.src = `data:image/png;base64,${image_data}`;
+                
+                card.appendChild(img);
+            }
+        }
+    });
+     
+    function toggleCard(guid) {
+        const card = document.getElementById(`card-${guid}`);
+        if (card.style.display === 'none' || card.style.display === '') {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}
